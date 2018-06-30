@@ -1,0 +1,62 @@
+apply plugin: 'com.android.application'
+
+def ndkDir
+if (project.rootProject.file('local.properties').exists()) {
+    Properties properties = new Properties()
+        properties.load(project.rootProject.file('local.properties').newDataInputStream())
+        ndkDir = properties.getProperty('ndk.dir')
+}
+if (!ndkDir) {
+    ndkDir=System.getenv("ANDROID_NDK_HOME")
+}
+
+if(!ndkDir || ndkDir.empty) {
+    throw new GradleException('Environment Variable ANDROID_NDK_HOME for NDK path need to be setup')
+}
+
+android {
+    compileSdkVersion 24
+
+    defaultConfig {
+        applicationId "com.vulkan.compute"
+        minSdkVersion 24
+        targetSdkVersion 24
+        versionCode 1
+        versionName "0.0.1"
+        externalNativeBuild {
+            cmake {
+                abiFilters "armeabi-v7a", 'arm64-v8a', 'x86', 'x86_64'
+                arguments '-DANDROID_TOOLCHAIN=clang', '-DANDROID_STL=c++_static'
+            }
+        }
+
+        packagingOptions {
+            doNotStrip '*/mips/*.so'
+            doNotStrip '*/mips64/*.so'
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path 'src/main/jni/CMakeLists.txt'
+        }
+/*
+        ndkBuild {
+            path 'Android.mk'
+        }
+*/
+    }
+    sourceSets.main.jniLibs.srcDirs file(ndkDir).absolutePath +
+            '/sources/third_party/vulkan/src/build-android/jniLibs'
+    buildToolsVersion '27.0.3'
+
+    buildTypes {
+        release {
+            minifyEnabled = false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+}
